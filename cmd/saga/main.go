@@ -5,25 +5,25 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	foreman "github.com/go-foreman/foreman"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/go-foreman/foreman/example/saga/handlers"
-	"github.com/go-foreman/foreman/example/saga/usecase"
-	_ "github.com/go-foreman/foreman/example/saga/usecase/account"
-	"github.com/go-foreman/foreman/example/saga/usecase/account/contracts"
-	"github.com/go-foreman/foreman/pkg"
-	"github.com/go-foreman/foreman/pkg/log"
-	"github.com/go-foreman/foreman/pkg/pubsub/endpoint"
-	"github.com/go-foreman/foreman/pkg/pubsub/message"
-	transportPackage "github.com/go-foreman/foreman/pkg/pubsub/transport/pkg"
-	"github.com/go-foreman/foreman/pkg/pubsub/transport/plugins/amqp"
-	"github.com/go-foreman/foreman/pkg/runtime/scheme"
-	"github.com/go-foreman/foreman/pkg/saga"
-	"github.com/go-foreman/foreman/pkg/saga/component"
-	"github.com/go-foreman/foreman/pkg/saga/mutex"
+	"github.com/go-foreman/examples/pkg/sagas/handlers"
+	"github.com/go-foreman/examples/pkg/sagas/usecase"
+	_ "github.com/go-foreman/examples/pkg/sagas/usecase/account"
+	"github.com/go-foreman/examples/pkg/sagas/usecase/account/contracts"
+	"github.com/go-foreman/foreman/log"
+	"github.com/go-foreman/foreman/pubsub/endpoint"
+	"github.com/go-foreman/foreman/pubsub/message"
+	transportPackage "github.com/go-foreman/foreman/pubsub/transport/pkg"
+	"github.com/go-foreman/foreman/pubsub/transport/plugins/amqp"
+	"github.com/go-foreman/foreman/runtime/scheme"
+	"github.com/go-foreman/foreman/saga"
+	"github.com/go-foreman/foreman/saga/component"
+	"github.com/go-foreman/foreman/saga/mutex"
 	_ "github.com/go-sql-driver/mysql"
 	amqp2 "github.com/streadway/amqp"
 )
@@ -79,7 +79,7 @@ func main() {
 	sagaComponent.RegisterSagas(usecase.DefaultSagasCollection.Sagas()...)
 	sagaComponent.RegisterContracts(usecase.DefaultSagasCollection.Contracts()...)
 
-	bus, err := pkg.NewMessageBus(defaultLogger, pkg.DefaultWithTransport(amqpTransport), pkg.WithSchemeRegistry(scheme.KnownTypesRegistryInstance), pkg.WithComponents(sagaComponent))
+	bus, err := foreman.NewMessageBus(defaultLogger, foreman.DefaultWithTransport(amqpTransport), foreman.WithSchemeRegistry(scheme.KnownTypesRegistryInstance), foreman.WithComponents(sagaComponent))
 
 	handleErr(err)
 
@@ -97,7 +97,7 @@ func main() {
 	defaultLogger.Log(log.FatalLevel, bus.Subscriber().Run(context.Background(), queue))
 }
 
-func loadSomeDIContainer(bus *pkg.MessageBus, defaultLogger log.Logger) {
+func loadSomeDIContainer(bus *foreman.MessageBus, defaultLogger log.Logger) {
 	tmpDir, err := ioutil.TempDir("", "confirmations")
 	handleErr(err)
 	accountHandler, err := handlers.NewAccountHandler(defaultLogger, tmpDir)

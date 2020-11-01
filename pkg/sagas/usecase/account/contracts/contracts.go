@@ -1,8 +1,8 @@
 package contracts
 
 import (
-	"github.com/go-foreman/foreman/example/saga/usecase"
-	"github.com/go-foreman/foreman/pkg/runtime/scheme"
+	"github.com/go-foreman/examples/pkg/sagas/usecase"
+	"github.com/go-foreman/foreman/runtime/scheme"
 )
 
 func init() {

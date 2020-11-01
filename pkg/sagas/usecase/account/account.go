@@ -2,11 +2,11 @@ package account
 
 import (
 	"fmt"
-	"github.com/go-foreman/foreman/example/saga/usecase"
-	"github.com/go-foreman/foreman/example/saga/usecase/account/contracts"
-	"github.com/go-foreman/foreman/pkg/log"
-	"github.com/go-foreman/foreman/pkg/pubsub/message"
-	"github.com/go-foreman/foreman/pkg/saga"
+	"github.com/go-foreman/examples/pkg/sagas/usecase"
+	"github.com/go-foreman/examples/pkg/sagas/usecase/account/contracts"
+	"github.com/go-foreman/foreman/log"
+	"github.com/go-foreman/foreman/pubsub/message"
+	"github.com/go-foreman/foreman/saga"
 )
 
 func init() {

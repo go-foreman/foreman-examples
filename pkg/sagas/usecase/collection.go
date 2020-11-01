@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"github.com/go-foreman/foreman/pkg/saga"
+	"github.com/go-foreman/foreman/saga"
 )
 
 var DefaultSagasCollection = SagasCollection{}

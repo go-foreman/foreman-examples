@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/go-foreman/foreman/example/saga/usecase/account"
-	"github.com/go-foreman/foreman/pkg/pubsub/message"
-	"github.com/go-foreman/foreman/pkg/runtime/scheme"
-	sagaContracts "github.com/go-foreman/foreman/pkg/saga/contracts"
+	"github.com/go-foreman/examples/pkg/sagas/usecase/account"
+	"github.com/go-foreman/foreman/pubsub/message"
+	"github.com/go-foreman/foreman/runtime/scheme"
+	sagaContracts "github.com/go-foreman/foreman/saga/contracts"
 	"github.com/google/uuid"
 	streadwayAmqp "github.com/streadway/amqp"
 )
