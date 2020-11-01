@@ -83,8 +83,8 @@ func main() {
 
 	handleErr(err)
 
-	//messagebus is ready to be used
-	//here goes loading of DI container with all handlers, business entities etc
+	//messagebus is ready to be used.
+	//here we load our container with all handlers, business entities etc
 	loadSomeDIContainer(bus, defaultLogger)
 
 	//start API server
