@@ -4,6 +4,12 @@ github.com/go-foreman/foreman v0.0.0-20201019232945-dd2cc8a59f0e h1:YIcwMmmvfw3l
 github.com/go-foreman/foreman v0.0.0-20201019232945-dd2cc8a59f0e/go.mod h1:HdKpZrQVEhE5TgNc6BBTfHKB6VZ22z4rX5e0r/n6SEk=
 github.com/go-foreman/foreman v0.0.0-20201101225811-289449d6ac55 h1:gGg502VNKdwA/WA0jZkzzBHjn/LzHg9DMwP9KUy3fwo=
 github.com/go-foreman/foreman v0.0.0-20201101225811-289449d6ac55/go.mod h1:yVLsOm4jxxHyQkryaCTyvL3yJNz5zl0MZEJjra2kbLI=
+github.com/go-foreman/foreman v0.0.0-20210222235001-23b6b525992e h1:aJNE64V7qNEmZSvV4sBNzzo1WDi5+pgZQJisfXiC7ME=
+github.com/go-foreman/foreman v0.0.0-20210222235001-23b6b525992e/go.mod h1:yVLsOm4jxxHyQkryaCTyvL3yJNz5zl0MZEJjra2kbLI=
+github.com/go-foreman/foreman v0.0.0-20210222235531-08eb9345b3e0 h1:yE0uav3Zt4ELqlLk/n7txQAkITgEjQ35SUxjvGSlbN0=
+github.com/go-foreman/foreman v0.0.0-20210222235531-08eb9345b3e0/go.mod h1:yVLsOm4jxxHyQkryaCTyvL3yJNz5zl0MZEJjra2kbLI=
+github.com/go-foreman/foreman v0.0.0-20210223001715-7740ba75370d h1:mXHEYUjKux0Sr+KZR+EhYwmd17ecrDKfoaVuw2BU/M8=
+github.com/go-foreman/foreman v0.0.0-20210223001715-7740ba75370d/go.mod h1:yVLsOm4jxxHyQkryaCTyvL3yJNz5zl0MZEJjra2kbLI=
 github.com/go-sql-driver/mysql v1.5.0 h1:ozyZYNQW3x3HtqT1jira07DN2PArx2v7/mN66gGcHOs=
 github.com/go-sql-driver/mysql v1.5.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
 github.com/google/uuid v1.1.2 h1:EVhdT+1Kseyi1/pUmXKaFxYsDNy9RQYkMWRH68J/W7Y=
