@@ -60,9 +60,9 @@ func main() {
 
 	sagaComponent := component.NewSagaComponent(
 		func(scheme scheme.KnownTypesRegistry) (saga.Store, error) {
-			return saga.NewSqlSagaStore(db, scheme)
+			return saga.NewMysqlSagaStore(db, scheme)
 		},
-		mutex.NewSqlMutex(db),
+		mutex.NewMysqlSqlMutex(db),
 		component.WithSagaApiServer(httpMux),
 	)
 
