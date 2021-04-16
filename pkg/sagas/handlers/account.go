@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"github.com/go-foreman/examples/pkg/sagas/usecase/account/contracts"
 	"github.com/go-foreman/foreman/log"
 	"github.com/go-foreman/foreman/pubsub/message"
@@ -36,18 +35,18 @@ func NewAccountHandler(logger log.Logger, confirmationsDir string) (*AccountHand
 
 func (h *AccountHandler) RegisterAccount(execCtx execution.MessageExecutionCtx) error {
 	receivedMsg := execCtx.Message()
-	registerAccountCmd, _ := receivedMsg.Payload.(*contracts.RegisterAccountCmd)
+	registerAccountCmd, _ := receivedMsg.Payload().(*contracts.RegisterAccountCmd)
 
 	time.Sleep(time.Second * 1)
 	if rand.Intn(10)%2 != 0 {
 		failedEvent := &contracts.RegistrationFailed{UID: registerAccountCmd.UID, Reason: "idk, some error happened :)"}
-		return execCtx.Send(message.NewEventMessage(failedEvent, message.WithHeaders(receivedMsg.Headers), message.WithDescription(failedEvent.Reason)))
+		return execCtx.Send(message.NewOutcomingMessage(failedEvent, message.WithHeaders(receivedMsg.Headers())))
 	}
 
 	account, exists := h.getAccount(registerAccountCmd.UID)
 	if exists {
 		failedEvent := &contracts.RegistrationFailed{UID: registerAccountCmd.UID, Reason: "account already created"}
-		return execCtx.Send(message.NewEventMessage(failedEvent, message.WithHeaders(receivedMsg.Headers), message.WithDescription(failedEvent.Reason)))
+		return execCtx.Send(message.NewOutcomingMessage(failedEvent, message.WithHeaders(receivedMsg.Headers())))
 	}
 
 	account = &Account{
@@ -57,24 +56,24 @@ func (h *AccountHandler) RegisterAccount(execCtx execution.MessageExecutionCtx) 
 
 	h.saveAccount(account)
 	successEvent := &contracts.AccountRegistered{UID: registerAccountCmd.UID}
-	return execCtx.Send(message.NewEventMessage(successEvent, message.WithHeaders(receivedMsg.Headers), message.WithDescription(fmt.Sprintf("Account %s was registered", registerAccountCmd.UID))))
+	return execCtx.Send(message.NewOutcomingMessage(successEvent, message.WithHeaders(receivedMsg.Headers())))
 }
 
 func (h *AccountHandler) SendConfirmation(execCtx execution.MessageExecutionCtx) error {
 	receivedMsg := execCtx.Message()
-	sendConfirmationCmd, _ := receivedMsg.Payload.(*contracts.SendConfirmationCmd)
+	sendConfirmationCmd, _ := receivedMsg.Payload().(*contracts.SendConfirmationCmd)
 
 	account, exists := h.getAccount(sendConfirmationCmd.UID)
 	if !exists {
 		failedEvent := &contracts.RegistrationFailed{UID: sendConfirmationCmd.UID, Reason: "account does not exist"}
-		return execCtx.Send(message.NewEventMessage(failedEvent, message.WithHeaders(receivedMsg.Headers), message.WithDescription(failedEvent.Reason)))
+		return execCtx.Send(message.NewOutcomingMessage(failedEvent, message.WithHeaders(receivedMsg.Headers())))
 	}
 
 	account.confirmationSentAt = time.Now()
 
 	//only for this use-case we need to write sagaId into file, usually it will be stored in db->
 	//user confirms registration with a token, we should look for an account in db by token, take sagaId and finishing our process.
-	v, ok := receivedMsg.Headers["sagaId"]
+	v, ok := receivedMsg.Headers()["sagaUID"]
 	if !ok {
 		panic("sagaId header is empty")
 	}
@@ -87,7 +86,7 @@ func (h *AccountHandler) SendConfirmation(execCtx execution.MessageExecutionCtx)
 	err := ioutil.WriteFile(path.Join(h.confirmationsDir, sagaId), []byte(sendConfirmationCmd.UID), 0777)
 	if err != nil {
 		failedEvent := &contracts.RegistrationFailed{UID: sendConfirmationCmd.UID, Reason: err.Error()}
-		return execCtx.Send(message.NewEventMessage(failedEvent, message.WithHeaders(receivedMsg.Headers), message.WithDescription(failedEvent.Reason)))
+		return execCtx.Send(message.NewOutcomingMessage(failedEvent, message.WithHeaders(receivedMsg.Headers())))
 	}
 
 	return nil

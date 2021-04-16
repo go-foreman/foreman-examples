@@ -7,6 +7,8 @@ import (
 	foreman "github.com/go-foreman/foreman"
 	"github.com/go-foreman/foreman/log"
 	"github.com/go-foreman/foreman/pubsub/message"
+	"github.com/go-foreman/foreman/runtime/scheme"
+	"github.com/google/uuid"
 	amqp2 "github.com/streadway/amqp"
 	"io/ioutil"
 	"os"
@@ -19,8 +21,8 @@ func loadSomeDIContainer(bus *foreman.MessageBus, defaultLogger log.Logger) {
 	accountHandler, err := handlers.NewAccountHandler(defaultLogger, tmpDir)
 	handleErr(err)
 	//here goes registration of handlers
-	bus.Dispatcher().RegisterCmdHandler(&contracts.RegisterAccountCmd{}, accountHandler.RegisterAccount)
-	bus.Dispatcher().RegisterCmdHandler(&contracts.SendConfirmationCmd{}, accountHandler.SendConfirmation)
+	bus.Dispatcher().SubscribeForCmd(&contracts.RegisterAccountCmd{}, accountHandler.RegisterAccount)
+	bus.Dispatcher().SubscribeForCmd(&contracts.SendConfirmationCmd{}, accountHandler.SendConfirmation)
 
 	//and here we are going to run some application that will simulate user behaviour. Look into mailbox, click confirm and complete registration.
 	go watchAndConfirmRegistration(tmpDir, defaultLogger)
@@ -48,13 +50,21 @@ func watchAndConfirmRegistration(dir string, logger log.Logger) {
 				filePath := dir + "/" + info.Name()
 				uid, err := ioutil.ReadFile(filePath)
 				handleErr(err)
-				accountConfirmedEvent := &contracts.AccountConfirmed{UID: string(uid)}
-				msgToDeliver := message.NewEventMessage(accountConfirmedEvent)
-				msgBytes, err := json.Marshal(msgToDeliver)
+				accountConfirmedEvent := &contracts.AccountConfirmed{
+					ObjectMeta: message.ObjectMeta{
+						TypeMeta: scheme.TypeMeta{
+							Kind:  "AccountConfirmed",
+							Group: "account",
+						},
+					},
+					UID: string(uid)}
+
+				msgBytes, err := json.Marshal(accountConfirmedEvent)
 				handleErr(err)
 				err = amqpChannel.Publish(topicName, topicName+".confirmations", false, false, amqp2.Publishing{
 					Headers: map[string]interface{}{
-						"sagaId": info.Name(),
+						"sagaUID": info.Name(),
+						"uid": uuid.New().String(),
 					},
 					ContentType: "application/json",
 					Body:        msgBytes,

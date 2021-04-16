@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-foreman/examples/pkg/sagas/usecase/account"
+	"github.com/go-foreman/examples/pkg/sagas/usecase/account/contracts"
 	"github.com/go-foreman/foreman/pubsub/message"
 	"github.com/go-foreman/foreman/runtime/scheme"
+	"github.com/go-foreman/foreman/saga"
 	sagaContracts "github.com/go-foreman/foreman/saga/contracts"
 	"github.com/google/uuid"
 	streadwayAmqp "github.com/streadway/amqp"
@@ -25,17 +27,28 @@ func main() {
 	for i := 0; i < 1000; i++ {
 		uid := uuid.New().String()
 		registerAccountSaga := &account.RegisterAccountSaga{
+			BaseSaga: saga.BaseSaga{ObjectMeta: message.ObjectMeta{
+				TypeMeta: scheme.TypeMeta{
+					Kind:  "RegisterAccountSaga",
+					Group: contracts.AccountGroup.String(),
+				},
+			}},
 			UID:          uid,
 			Email:        fmt.Sprintf("account-%s@github.com", uid),
-			RetriesLimit: 10,
+			RetriesLimit: 1,
 		}
 		startSagaCmd := &sagaContracts.StartSagaCommand{
+			ObjectMeta: message.ObjectMeta{
+				TypeMeta: scheme.TypeMeta{
+					Group: "systemSaga",
+					Kind: "StartSagaCommand",
+				},
+			},
 			SagaId:   uuid.New().String(),
-			SagaName: scheme.WithStruct(registerAccountSaga)(),
 			Saga:     registerAccountSaga,
 		}
-		messageToDeliver := message.NewCommandMessage(startSagaCmd)
-		msgBytes, err := json.Marshal(messageToDeliver)
+
+		msgBytes, err := json.Marshal(startSagaCmd)
 		if err != nil {
 			panic(err)
 		}
@@ -48,6 +61,9 @@ func main() {
 			streadwayAmqp.Publishing{
 				ContentType: "application/json",
 				Body:        msgBytes,
+				Headers: map[string]interface{}{
+					"uid": uuid.New().String(),
+				},
 			},
 		)
 		if err != nil {

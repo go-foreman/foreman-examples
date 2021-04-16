@@ -9,6 +9,7 @@ import (
 	foreman "github.com/go-foreman/foreman"
 	"github.com/go-foreman/foreman/log"
 	"github.com/go-foreman/foreman/pubsub/endpoint"
+	"github.com/go-foreman/foreman/pubsub/message"
 	transportPackage "github.com/go-foreman/foreman/pubsub/transport/pkg"
 	"github.com/go-foreman/foreman/pubsub/transport/plugins/amqp"
 	"github.com/go-foreman/foreman/runtime/scheme"
@@ -54,12 +55,15 @@ func main() {
 		panic(err)
 	}
 
-	amqpEndpoint := endpoint.NewAmqpEndpoint(fmt.Sprintf("%s_endpoint", queue.Name()), amqpTransport, transportPackage.DeliveryDestination{DestinationTopic: topic.Name(), RoutingKey: fmt.Sprintf("%s.eventAndCommands", topic.Name())})
+	schemeRegistry := scheme.KnownTypesRegistryInstance
+	marshaller := message.NewJsonMarshaller(schemeRegistry)
+
+	amqpEndpoint := endpoint.NewAmqpEndpoint(fmt.Sprintf("%s_endpoint", queue.Name()), amqpTransport, transportPackage.DeliveryDestination{DestinationTopic: topic.Name(), RoutingKey: fmt.Sprintf("%s.eventAndCommands", topic.Name())}, marshaller)
 
 	httpMux := http.NewServeMux()
 
 	sagaComponent := component.NewSagaComponent(
-		func(scheme scheme.KnownTypesRegistry) (saga.Store, error) {
+		func(scheme message.Marshaller) (saga.Store, error) {
 			return saga.NewMysqlSagaStore(db, scheme)
 		},
 		mutex.NewMysqlSqlMutex(db),
@@ -70,7 +74,7 @@ func main() {
 	sagaComponent.RegisterSagas(usecase.DefaultSagasCollection.Sagas()...)
 	sagaComponent.RegisterContracts(usecase.DefaultSagasCollection.Contracts()...)
 
-	bus, err := foreman.NewMessageBus(defaultLogger, foreman.DefaultWithTransport(amqpTransport), foreman.WithSchemeRegistry(scheme.KnownTypesRegistryInstance), foreman.WithComponents(sagaComponent))
+	bus, err := foreman.NewMessageBus(defaultLogger, marshaller, schemeRegistry, foreman.DefaultWithTransport(amqpTransport), foreman.WithComponents(sagaComponent))
 
 	handleErr(err)
 
