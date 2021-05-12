@@ -12,6 +12,10 @@ github.com/go-foreman/foreman v0.0.0-20210223001715-7740ba75370d h1:mXHEYUjKux0S
 github.com/go-foreman/foreman v0.0.0-20210223001715-7740ba75370d/go.mod h1:yVLsOm4jxxHyQkryaCTyvL3yJNz5zl0MZEJjra2kbLI=
 github.com/go-foreman/foreman v0.0.0-20210331002714-f0f6d50732a0 h1:LGcWKWxElkQ5ApCHHJ8O3ngJ7nx4glY2ZJfPxIW886I=
 github.com/go-foreman/foreman v0.0.0-20210331002714-f0f6d50732a0/go.mod h1:IDIIMAK2+l9NK4guhD+ff7/0jiN3XxOXv/Cld0A/uI4=
+github.com/go-foreman/foreman v0.0.0-20210416190405-315a9c6d33fe h1:Ei3a66a/vI9OE+QW3yEpYAPz7joovCer0k07xd739Ic=
+github.com/go-foreman/foreman v0.0.0-20210416190405-315a9c6d33fe/go.mod h1:4i4WPJOLljrmrvmpnxr8S69lUPQf0asrAomMNiP+IhQ=
+github.com/go-foreman/foreman v0.1.3 h1:ipuuuY1RQKO2woZrdfEV31yaba2RewlHJXwEDDYoDWo=
+github.com/go-foreman/foreman v0.1.3/go.mod h1:4i4WPJOLljrmrvmpnxr8S69lUPQf0asrAomMNiP+IhQ=
 github.com/go-sql-driver/mysql v1.5.0 h1:ozyZYNQW3x3HtqT1jira07DN2PArx2v7/mN66gGcHOs=
 github.com/go-sql-driver/mysql v1.5.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
 github.com/google/uuid v1.1.2 h1:EVhdT+1Kseyi1/pUmXKaFxYsDNy9RQYkMWRH68J/W7Y=

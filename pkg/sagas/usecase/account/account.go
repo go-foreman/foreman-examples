@@ -79,7 +79,7 @@ func (r *RegisterAccountSaga) RegistrationFailed(execCtx saga.SagaContext) error
 	}
 
 	execCtx.SagaInstance().Fail(execCtx.Message().Payload())
-	execCtx.Dispatch(&systemContacts.RecoverSagaCommand{SagaId: execCtx.SagaInstance().UID()})
+	execCtx.Dispatch(&systemContacts.RecoverSagaCommand{SagaUID: execCtx.SagaInstance().UID()})
 	return nil
 }
 
