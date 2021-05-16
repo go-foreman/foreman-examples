@@ -64,9 +64,9 @@ func main() {
 
 	sagaComponent := component.NewSagaComponent(
 		func(scheme message.Marshaller) (saga.Store, error) {
-			return saga.NewMysqlSagaStore(db, scheme)
+			return saga.NewSQLSagaStore(db, saga.MYSQLDriver, scheme)
 		},
-		mutex.NewMysqlSqlMutex(db),
+		mutex.NewSqlMutex(db, saga.MYSQLDriver),
 		component.WithSagaApiServer(httpMux),
 	)
 
