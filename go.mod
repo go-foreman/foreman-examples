@@ -3,9 +3,9 @@ module github.com/go-foreman/examples
 go 1.16
 
 require (
-	github.com/go-foreman/foreman v0.1.5
+	github.com/go-foreman/foreman v0.1.6
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/google/uuid v1.1.2
+	github.com/google/uuid v1.2.0
 	github.com/streadway/amqp v1.0.0
 )
 
