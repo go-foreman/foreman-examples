@@ -24,7 +24,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		uid := uuid.New().String()
 		registerAccountSaga := &account.RegisterAccountSaga{
 			BaseSaga: saga.BaseSaga{ObjectMeta: message.ObjectMeta{
