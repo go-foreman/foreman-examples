@@ -63,6 +63,7 @@ func main() {
 				Body:        msgBytes,
 				Headers: map[string]interface{}{
 					"uid": uuid.New().String(),
+					"traceId": "sometraceid",
 				},
 			},
 		)
