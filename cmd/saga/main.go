@@ -10,8 +10,8 @@ import (
 	"github.com/go-foreman/foreman/log"
 	"github.com/go-foreman/foreman/pubsub/endpoint"
 	"github.com/go-foreman/foreman/pubsub/message"
-	transportPackage "github.com/go-foreman/foreman/pubsub/transport/pkg"
-	"github.com/go-foreman/foreman/pubsub/transport/plugins/amqp"
+	"github.com/go-foreman/foreman/pubsub/transport"
+	foremanAmqp "github.com/go-foreman/foreman/pubsub/transport/amqp"
 	"github.com/go-foreman/foreman/runtime/scheme"
 	"github.com/go-foreman/foreman/saga"
 	"github.com/go-foreman/foreman/saga/component"
@@ -33,10 +33,10 @@ func main() {
 	db.SetMaxOpenConns(100)
 	db.SetMaxIdleConns(100)
 
-	amqpTransport := amqp.NewTransport("amqp://admin:admin123@127.0.0.1:5672", defaultLogger)
-	queue := amqp.Queue(queueName, false, false, false, false)
-	topic := amqp.Topic(topicName, false, false, false, false)
-	binds := amqp.QueueBind(topic.Name(), fmt.Sprintf("%s.#", topic.Name()), false)
+	amqpTransport := foremanAmqp.NewTransport("amqp://admin:admin123@127.0.0.1:5672", defaultLogger)
+	queue := foremanAmqp.Queue(queueName, false, false, false, false)
+	topic := foremanAmqp.Topic(topicName, false, false, false, false)
+	binds := foremanAmqp.QueueBind(topic.Name(), fmt.Sprintf("%s.#", topic.Name()), false)
 
 	ctx := context.Background()
 
@@ -58,7 +58,7 @@ func main() {
 	schemeRegistry := scheme.KnownTypesRegistryInstance
 	marshaller := message.NewJsonMarshaller(schemeRegistry)
 
-	amqpEndpoint := endpoint.NewAmqpEndpoint(fmt.Sprintf("%s_endpoint", queue.Name()), amqpTransport, transportPackage.DeliveryDestination{DestinationTopic: topic.Name(), RoutingKey: fmt.Sprintf("%s.eventAndCommands", topic.Name())}, marshaller)
+	amqpEndpoint := endpoint.NewAmqpEndpoint(fmt.Sprintf("%s_endpoint", queue.Name()), amqpTransport, transport.DeliveryDestination{DestinationTopic: topic.Name(), RoutingKey: fmt.Sprintf("%s.eventAndCommands", topic.Name())}, marshaller)
 
 	httpMux := http.NewServeMux()
 
