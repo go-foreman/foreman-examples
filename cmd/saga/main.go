@@ -4,8 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"io/ioutil"
+	"net/http"
+
+	emailHandler "github.com/go-foreman/examples/pkg/sagas/handlers/email"
+	paymentHandler "github.com/go-foreman/examples/pkg/sagas/handlers/payment"
+	userHandler "github.com/go-foreman/examples/pkg/sagas/handlers/user"
 	"github.com/go-foreman/examples/pkg/sagas/usecase"
-	_ "github.com/go-foreman/examples/pkg/sagas/usecase/account"
+	"github.com/go-foreman/examples/pkg/services/email"
+	"github.com/go-foreman/examples/pkg/services/payment"
+	"github.com/go-foreman/examples/pkg/services/user"
 	foreman "github.com/go-foreman/foreman"
 	"github.com/go-foreman/foreman/log"
 	"github.com/go-foreman/foreman/pubsub/endpoint"
@@ -17,7 +26,8 @@ import (
 	"github.com/go-foreman/foreman/saga/component"
 	"github.com/go-foreman/foreman/saga/mutex"
 	_ "github.com/go-sql-driver/mysql"
-	"net/http"
+
+	_ "github.com/go-foreman/examples/pkg/sagas/usecase/subscription"
 )
 
 const (
@@ -79,8 +89,8 @@ func main() {
 	handleErr(err)
 
 	//messagebus is ready to be used.
-	//here we load our container with all handlers, business entities etc
-	loadSomeDIContainer(bus, defaultLogger)
+	//here we create services, handlers and inside of handler we will subscribe for commands
+	provisionHandlers(bus, defaultLogger)
 
 	//start API server
 	go func() {
@@ -90,6 +100,20 @@ func main() {
 
 	//run subscriber
 	defaultLogger.Log(log.FatalLevel, bus.Subscriber().Run(context.Background(), queue))
+}
+
+func provisionHandlers(bus *foreman.MessageBus, defaultLogger log.Logger) {
+	userService := user.NewUserService()
+	invoicingService := payment.NewInvoicingService()
+
+	emailsDir, err := ioutil.TempDir("", "emails")
+	handleErr(err)
+
+	senderService := email.NewSenderService(emailsDir)
+
+	userHandler.NewHandler(bus, userService)
+	paymentHandler.NewHandler(bus, invoicingService)
+	emailHandler.NewHandler(bus, senderService, userService, invoicingService)
 }
 
 func handleErr(err error) {
