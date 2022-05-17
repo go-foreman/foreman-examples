@@ -18,34 +18,45 @@ const (
 	topicName = "messagebus_exchange"
 )
 
+// user can implement own logger implementation for the log.Logger interface
 var defaultLogger = log.DefaultLogger()
 
 func main() {
+	// creating new AMQP transport
 	amqpTransport := foremanAmqp.NewTransport("amqp://admin:admin123@127.0.0.1:5672", defaultLogger)
+	// creating queue definition with options
 	queue := foremanAmqp.Queue(queueName, false, false, false, false)
+	// creating topic(exchange) definition with options
 	topic := foremanAmqp.Topic(topicName, false, false, false, false)
+	// binding the queue to the topic
 	binds := foremanAmqp.QueueBind(topic.Name(), fmt.Sprintf("%s.#", topic.Name()), false)
 
 	ctx := context.Background()
 
+	// connection to amqp through transport
 	if err := amqpTransport.Connect(ctx); err != nil {
 		defaultLogger.Logf(log.ErrorLevel, "Error connecting to amqp. %s", err)
 		panic(err)
 	}
 
+	// create topic if such does not exist
 	if err := amqpTransport.CreateTopic(ctx, topic); err != nil {
 		defaultLogger.Logf(log.ErrorLevel, "Error creating topic %s. %s", topic.Name(), err)
 		panic(err)
 	}
 
+	// create queue if one does not exist and bind it
 	if err := amqpTransport.CreateQueue(ctx, queue, binds); err != nil {
 		defaultLogger.Logf(log.ErrorLevel, "Error creating queue %s. %s", queue.Name(), err)
 		panic(err)
 	}
 
+	// it's possible to use global scheme instance on package level or create new one using constructor
 	schemeRegistry := scheme.KnownTypesRegistryInstance
+	// marshaller is responsible for encoding/decoding messages
 	marshaller := message.NewJsonMarshaller(schemeRegistry)
 
+	// an endpoint is used by execution context when a user wants to call execCtx.Send().
 	amqpEndpoint := endpoint.NewAmqpEndpoint(
 		fmt.Sprintf("%s_endpoint", queue.Name()),
 		amqpTransport,
@@ -56,11 +67,12 @@ func main() {
 		marshaller,
 	)
 
+	// creating an instance of the message bus with all its dependencies.
 	bus, err := foreman.NewMessageBus(
 		defaultLogger,
 		marshaller,
 		schemeRegistry,
-		foreman.DefaultWithTransport(amqpTransport),
+		foreman.DefaultWithTransport(amqpTransport), //this option tell the message bus to use default subscriber with this transport.
 	)
 
 	handleErr(err)
