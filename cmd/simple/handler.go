@@ -9,14 +9,14 @@ import (
 )
 
 type SomeCommand struct {
-	message.ObjectMeta
-	MyID string `json:"my_id"`
+	message.ObjectMeta        //all types must have embedded ObjectMeta
+	MyID               string `json:"my_id"`
 }
 
 type SomeEvent struct {
-	message.ObjectMeta
-	MyID      string    `json:"my_id"`
-	HandledAt time.Time `json:"handled_at"`
+	message.ObjectMeta           //all types must have embedded ObjectMeta
+	MyID               string    `json:"my_id"`
+	HandledAt          time.Time `json:"handled_at"`
 }
 
 type Handler struct {
@@ -27,7 +27,7 @@ func (h Handler) handleSomeCommand(execCtx execution.MessageExecutionCtx) error 
 
 	execCtx.LogMessage(log.InfoLevel, fmt.Sprintf("Just received and handled command with MyID %s", someCmd.MyID))
 
-	return execCtx.Send(message.NewOutcomingMessage(&SomeEvent{MyID: someCmd.MyID, HandledAt: time.Now()}))
+	return execCtx.Send(message.NewOutcomingMessage(&SomeEvent{MyID: someCmd.MyID, HandledAt: time.Now()})) //reply with an event
 }
 
 func (h Handler) handleSomeEvent(execCtx execution.MessageExecutionCtx) error {
@@ -36,5 +36,4 @@ func (h Handler) handleSomeEvent(execCtx execution.MessageExecutionCtx) error {
 	execCtx.LogMessage(log.InfoLevel, fmt.Sprintf("Received event that was a response to a handled command %s at %s", ev.MyID, ev.HandledAt))
 
 	return nil
-
 }
