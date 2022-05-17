@@ -85,7 +85,7 @@ func main() {
 		simulation(ctx, defaultLogger, amqpEndpoint)
 	}()
 
-	defaultLogger.Log(log.FatalLevel, bus.Subscriber().Run(context.Background(), queue))
+	defaultLogger.Log(log.FatalLevel, bus.Subscriber().Run(ctx, queue))
 }
 
 func handleErr(err error) {
