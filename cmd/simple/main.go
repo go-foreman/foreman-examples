@@ -56,17 +56,6 @@ func main() {
 	// marshaller is responsible for encoding/decoding messages
 	marshaller := message.NewJsonMarshaller(schemeRegistry)
 
-	// an endpoint is used by execution context when a user wants to call execCtx.Send().
-	amqpEndpoint := endpoint.NewAmqpEndpoint(
-		fmt.Sprintf("%s_endpoint", queue.Name()),
-		amqpTransport,
-		transport.DeliveryDestination{
-			DestinationTopic: topic.Name(),
-			RoutingKey:       fmt.Sprintf("%s.eventAndCommands", topic.Name()),
-		},
-		marshaller,
-	)
-
 	// creating an instance of the message bus with all its dependencies.
 	bus, err := foreman.NewMessageBus(
 		defaultLogger,
@@ -76,6 +65,17 @@ func main() {
 	)
 
 	handleErr(err)
+
+	// an endpoint is used by execution context when a user wants to call execCtx.Send().
+	amqpEndpoint := endpoint.NewAmqpEndpoint(
+		fmt.Sprintf("%s_endpoint", queue.Name()),
+		amqpTransport,
+		transport.DeliveryDestination{
+			DestinationTopic: topic.Name(),
+			RoutingKey:       fmt.Sprintf("%s.eventAndCommands", topic.Name()),
+		},
+		marshaller, //endpoint encodes a message before sending it
+	)
 
 	//here all registrations are happening...
 
