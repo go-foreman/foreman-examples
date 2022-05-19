@@ -2,6 +2,9 @@ package subscription
 
 import (
 	"fmt"
+	"github.com/go-foreman/foreman/pubsub/endpoint"
+	sagaContracts "github.com/go-foreman/foreman/saga/contracts"
+	"time"
 
 	"github.com/go-foreman/examples/pkg/sagas/usecase"
 	"github.com/go-foreman/examples/pkg/sagas/usecase/subscription/contracts"
@@ -16,8 +19,9 @@ func init() {
 }
 
 type SubscribeSaga struct {
-	saga.BaseSaga
+	saga.BaseSaga //embeds ObjectMeta, EventHandlers() and SetSchema()
 
+	// business data
 	Email        string  `json:"email"`
 	Currency     string  `json:"currency"`
 	Amount       float32 `json:"amount"`
@@ -43,7 +47,7 @@ func (r *SubscribeSaga) Init() {
 
 func (r *SubscribeSaga) Start(execCtx saga.SagaContext) error {
 	r.CurrentRetries = r.RetriesLimit
-	execCtx.LogMessage(log.InfoLevel, fmt.Sprintf("Starting saga %s", execCtx.SagaInstance().UID()))
+	execCtx.LogMessage(log.InfoLevel, "Starting saga")
 	execCtx.Dispatch(&contracts.RegisterUserCmd{
 		Email: r.Email,
 	})
@@ -55,6 +59,7 @@ func (r *SubscribeSaga) Compensate(execCtx saga.SagaContext) error {
 	execCtx.Dispatch(&contracts.CancelInvoiceCmd{
 		InvoiceID: r.InvoiceID,
 	})
+
 	return nil
 }
 
@@ -66,7 +71,7 @@ func (r *SubscribeSaga) Recover(execCtx saga.SagaContext) error {
 		execCtx.Dispatch(ev)
 	}
 
-	execCtx.LogMessage(log.InfoLevel, fmt.Sprintf("Recovering saga %s, Retries limit was set to 1", execCtx.SagaInstance().UID()))
+	execCtx.LogMessage(log.InfoLevel, "Recovering saga, Retries limit was set to 1")
 
 	return nil
 }
@@ -128,6 +133,7 @@ func (r *SubscribeSaga) InvoiceCreationFailed(execCtx saga.SagaContext) error {
 	ev, _ := execCtx.Message().Payload().(*contracts.InvoiceCreationFailed)
 	execCtx.LogMessage(log.ErrorLevel, fmt.Sprintf("Failed to create invoice %s for user %s. %s", r.InvoiceID, r.Email, ev.Reason))
 
+	// custom retry logic
 	if r.CurrentRetries > 0 {
 		r.CurrentRetries--
 
@@ -136,11 +142,12 @@ func (r *SubscribeSaga) InvoiceCreationFailed(execCtx saga.SagaContext) error {
 			Email:    r.Email,
 			Amount:   r.Amount,
 			Currency: r.Currency,
-		})
+		}, endpoint.WithDelay(time.Second*5)) //do not retry immidiately, wait 5s
 
 		return nil
 	}
 
+	// if all retries are used, invoice creation failed, need to mark this saga as failed one, the last failed message will be persisted into saga's state
 	execCtx.SagaInstance().Fail(execCtx.Message().Payload())
 	execCtx.LogMessage(log.ErrorLevel, "Saga failed. You can recover it or compensate by sending corresponding commands.")
 
@@ -151,6 +158,7 @@ func (r *SubscribeSaga) EmailSent(execCtx saga.SagaContext) error {
 	execCtx.LogMessage(log.InfoLevel, fmt.Sprintf("Email to %s was sent", r.Email))
 	execCtx.LogMessage(log.InfoLevel, "Saga completed")
 
+	// all steps are processed successfully, mark this saga as completed.
 	execCtx.SagaInstance().Complete()
 
 	return nil
@@ -174,6 +182,14 @@ func (r *SubscribeSaga) EmailSendingFailed(execCtx saga.SagaContext) error {
 
 	execCtx.SagaInstance().Fail(execCtx.Message().Payload())
 	execCtx.LogMessage(log.ErrorLevel, "Saga failed. You can recover it or compensate by sending corresponding commands.")
+
+	// Depending on business logic these commands can be pushed on user action or
+	// automatically. In this example at the end of failed process a compensation
+	// command is dispatched and soon r.Compensate() will be triggered and saga
+	// will go into 'compensating' status
+	execCtx.Dispatch(&sagaContracts.CompensateSagaCommand{
+		SagaUID: execCtx.SagaInstance().UID(),
+	})
 
 	return nil
 }
