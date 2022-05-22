@@ -84,7 +84,7 @@ func main() {
 	sagaComponent.RegisterSagas(usecase.DefaultSagasCollection.Sagas()...)
 	sagaComponent.RegisterContracts(usecase.DefaultSagasCollection.Contracts()...)
 
-	bus, err := foreman.NewMessageBus(defaultLogger, marshaller, schemeRegistry, foreman.DefaultWithTransport(amqpTransport), foreman.WithComponents(sagaComponent))
+	bus, err := foreman.NewMessageBus(defaultLogger, marshaller, schemeRegistry, foreman.DefaultSubscriber(amqpTransport), foreman.WithComponents(sagaComponent))
 
 	handleErr(err)
 

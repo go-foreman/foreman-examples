@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+
 	foreman "github.com/go-foreman/foreman"
 	"github.com/go-foreman/foreman/log"
 	"github.com/go-foreman/foreman/pubsub/endpoint"
@@ -61,7 +62,7 @@ func main() {
 		defaultLogger,
 		marshaller,
 		schemeRegistry,
-		foreman.DefaultWithTransport(amqpTransport), //this option tells the message bus to use default subscriber with this transport.
+		foreman.DefaultSubscriber(amqpTransport), //this option tells the message bus to use default subscriber with this transport.
 	)
 
 	handleErr(err)
