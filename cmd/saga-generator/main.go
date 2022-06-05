@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
+	"log"
+
 	"github.com/go-foreman/examples/pkg/sagas/usecase/subscription"
 	"github.com/go-foreman/examples/pkg/sagas/usecase/subscription/contracts"
 	"github.com/go-foreman/foreman/pubsub/message"
@@ -10,12 +13,11 @@ import (
 	"github.com/go-foreman/foreman/saga"
 	sagaContracts "github.com/go-foreman/foreman/saga/contracts"
 	"github.com/google/uuid"
-	streadwayAmqp "github.com/streadway/amqp"
-	"log"
+	amqpClient "github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
-	conn, err := streadwayAmqp.Dial("amqp://admin:admin123@127.0.0.1:5673")
+	conn, err := amqpClient.Dial("amqp://admin:admin123@127.0.0.1:5673")
 	if err != nil {
 		panic(err)
 	}
@@ -32,7 +34,7 @@ func main() {
 		panic(err)
 	}
 
-	returns := make(chan streadwayAmqp.Return, 1)
+	returns := make(chan amqpClient.Return, 1)
 	ch.NotifyReturn(returns)
 
 	for i := 0; i < 10000; i++ {
@@ -70,7 +72,7 @@ func main() {
 			"messagebus_exchange.eventAndCommands",
 			false,
 			false,
-			streadwayAmqp.Publishing{
+			amqpClient.Publishing{
 				ContentType: "application/json",
 				Body:        msgBytes,
 				Headers: map[string]interface{}{
