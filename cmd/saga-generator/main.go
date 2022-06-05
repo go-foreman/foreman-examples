@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	conn, err := streadwayAmqp.Dial("amqp://admin:admin123@127.0.0.1:5672")
+	conn, err := streadwayAmqp.Dial("amqp://admin:admin123@127.0.0.1:5673")
 	if err != nil {
 		panic(err)
 	}
@@ -35,7 +35,7 @@ func main() {
 	returns := make(chan streadwayAmqp.Return, 1)
 	ch.NotifyReturn(returns)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 10000; i++ {
 		uid := uuid.New().String()
 		registerAccountSaga := &subscription.SubscribeSaga{
 			BaseSaga: saga.BaseSaga{ObjectMeta: message.ObjectMeta{
@@ -47,7 +47,7 @@ func main() {
 			Email:        fmt.Sprintf("account-%s@github.com", uid),
 			Currency:     "eur",
 			Amount:       float32(i * 10),
-			RetriesLimit: 1,
+			RetriesLimit: 3,
 		}
 		startSagaCmd := &sagaContracts.StartSagaCommand{
 			ObjectMeta: message.ObjectMeta{
@@ -56,7 +56,7 @@ func main() {
 					Kind:  "StartSagaCommand",
 				},
 			},
-			SagaUID: uuid.New().String(),
+			SagaUID: uid,
 			Saga:    registerAccountSaga,
 		}
 
@@ -74,8 +74,8 @@ func main() {
 				ContentType: "application/json",
 				Body:        msgBytes,
 				Headers: map[string]interface{}{
-					"uid":     uuid.New().String(),
-					"traceId": fmt.Sprintf("trace-%d", i),
+					"uid":     uid,
+					"traceId": uid,
 				},
 			},
 		); err != nil {
