@@ -4,6 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
+	"github.com/go-foreman/foreman/pubsub/subscriber"
+	sagaSql "github.com/go-foreman/foreman/saga/sql"
 
 	"io/ioutil"
 	"net/http"
@@ -38,12 +42,15 @@ const (
 var defaultLogger = log.DefaultLogger()
 
 func main() {
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/foreman?charset=utf8&parseTime=True&timeout=30s")
+	defaultLogger.SetLevel(log.InfoLevel)
+	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3307)/foreman?charset=utf8&parseTime=True&timeout=30s")
 	handleErr(err)
-	db.SetMaxOpenConns(100)
-	db.SetMaxIdleConns(100)
+	db.SetMaxOpenConns(5)
+	db.SetMaxIdleConns(5)
 
-	amqpTransport := foremanAmqp.NewTransport("amqp://admin:admin123@127.0.0.1:5672", defaultLogger)
+	sagaSqlWrapper := sagaSql.NewDB(db)
+
+	amqpTransport := foremanAmqp.NewTransport("amqp://admin:admin123@127.0.0.1:5673", defaultLogger)
 	queue := foremanAmqp.Queue(queueName, false, false, false, false)
 	topic := foremanAmqp.Topic(topicName, false, false, false, false)
 	binds := foremanAmqp.QueueBind(topic.Name(), fmt.Sprintf("%s.#", topic.Name()), false)
@@ -74,9 +81,9 @@ func main() {
 
 	sagaComponent := component.NewSagaComponent(
 		func(scheme message.Marshaller) (saga.Store, error) {
-			return saga.NewSQLSagaStore(db, saga.MYSQLDriver, scheme)
+			return saga.NewSQLSagaStore(sagaSqlWrapper, saga.MYSQLDriver, scheme)
 		},
-		mutex.NewSqlMutex(db, saga.MYSQLDriver),
+		mutex.NewSqlMutex(sagaSqlWrapper, saga.MYSQLDriver, defaultLogger),
 		component.WithSagaApiServer(httpMux),
 	)
 
@@ -84,13 +91,16 @@ func main() {
 	sagaComponent.RegisterSagas(usecase.DefaultSagasCollection.Sagas()...)
 	sagaComponent.RegisterContracts(usecase.DefaultSagasCollection.Contracts()...)
 
-	bus, err := foreman.NewMessageBus(defaultLogger, marshaller, schemeRegistry, foreman.DefaultSubscriber(amqpTransport), foreman.WithComponents(sagaComponent))
+	sConfig := subscriber.DefaultConfig
+	sConfig.WorkersCount = 100
+	sConfig.PackageProcessingMaxTime = time.Second * 300
 
+	bus, err := foreman.NewMessageBus(defaultLogger, marshaller, schemeRegistry, foreman.DefaultSubscriber(amqpTransport, subscriber.WithConfig(&sConfig)), foreman.WithComponents(sagaComponent))
 	handleErr(err)
 
 	//messagebus is ready to be used.
 	//here we create services, handlers and inside of handler we will subscribe for commands
-	provisionHandlers(bus, defaultLogger)
+	provisionHandlers(bus)
 
 	//start API server
 	go func() {
@@ -102,7 +112,7 @@ func main() {
 	defaultLogger.Log(log.FatalLevel, bus.Subscriber().Run(context.Background(), queue))
 }
 
-func provisionHandlers(bus *foreman.MessageBus, defaultLogger log.Logger) {
+func provisionHandlers(bus *foreman.MessageBus) {
 	userService := user.NewUserService()
 	invoicingService := payment.NewInvoicingService()
 

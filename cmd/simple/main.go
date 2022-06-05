@@ -24,7 +24,7 @@ var defaultLogger = log.DefaultLogger()
 
 func main() {
 	// creating new AMQP transport
-	amqpTransport := foremanAmqp.NewTransport("amqp://admin:admin123@127.0.0.1:5672", defaultLogger)
+	amqpTransport := foremanAmqp.NewTransport("amqp://admin:admin123@127.0.0.1:5673", defaultLogger)
 	// creating queue definition with options
 	queue := foremanAmqp.Queue(queueName, false, false, false, false)
 	// creating topic(exchange) definition with options
