@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/go-foreman/foreman/pubsub/subscriber"
@@ -39,7 +40,7 @@ const (
 	topicName = "messagebus_exchange"
 )
 
-var defaultLogger = log.DefaultLogger()
+var defaultLogger = log.DefaultLogger(os.Stdout)
 
 func main() {
 	defaultLogger.SetLevel(log.InfoLevel)
@@ -50,17 +51,31 @@ func main() {
 
 	sagaSqlWrapper := sagaSql.NewDB(db)
 
-	amqpTransport := foremanAmqp.NewTransport("amqp://admin:admin123@127.0.0.1:5673", defaultLogger)
-	queue := foremanAmqp.Queue(queueName, false, false, false, false)
-	topic := foremanAmqp.Topic(topicName, false, false, false, false)
+	conn, err := foremanAmqp.Dial("amqp://admin:admin123@127.0.0.1:5673", true, defaultLogger)
+	//conn, err := amqpClient.Dial("amqp://admin:admin123@127.0.0.1:5673")
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			defaultLogger.Log(log.ErrorLevel, err.Error())
+		}
+	}()
+
+	amqpTransport := foremanAmqp.NewTransport(conn, defaultLogger)
+
+	queue := foremanAmqp.Queue(queueName, true, false, false, false)
+	topic := foremanAmqp.Topic(topicName, true, false, false, false)
 	binds := foremanAmqp.QueueBind(topic.Name(), fmt.Sprintf("%s.#", topic.Name()), false)
 
 	ctx := context.Background()
 
-	if err := amqpTransport.Connect(ctx); err != nil {
-		defaultLogger.Logf(log.ErrorLevel, "Error connecting to amqp. %s", err)
-		panic(err)
-	}
+	defer func() {
+		if err := amqpTransport.Disconnect(ctx); err != nil {
+			defaultLogger.Log(log.ErrorLevel, err.Error())
+		}
+	}()
 
 	if err := amqpTransport.CreateTopic(ctx, topic); err != nil {
 		defaultLogger.Logf(log.ErrorLevel, "Error creating topic %s. %s", topic.Name(), err)
@@ -95,7 +110,12 @@ func main() {
 	sConfig.WorkersCount = 100
 	sConfig.PackageProcessingMaxTime = time.Second * 300
 
-	bus, err := foreman.NewMessageBus(defaultLogger, marshaller, schemeRegistry, foreman.DefaultSubscriber(amqpTransport, subscriber.WithConfig(&sConfig)), foreman.WithComponents(sagaComponent))
+	bus, err := foreman.NewMessageBus(
+		defaultLogger,
+		marshaller,
+		schemeRegistry,
+		foreman.DefaultSubscriber(amqpTransport, subscriber.WithConfig(&sConfig), subscriber.WithConsumeOpts(foremanAmqp.WithQosPrefetchCount(100))),
+		foreman.WithComponents(sagaComponent))
 	handleErr(err)
 
 	//messagebus is ready to be used.

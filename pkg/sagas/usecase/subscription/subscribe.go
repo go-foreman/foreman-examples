@@ -1,10 +1,10 @@
 package subscription
 
 import (
-	"fmt"
+	"time"
+
 	"github.com/go-foreman/foreman/pubsub/endpoint"
 	sagaContracts "github.com/go-foreman/foreman/saga/contracts"
-	"time"
 
 	"github.com/go-foreman/examples/pkg/sagas/usecase"
 	"github.com/go-foreman/examples/pkg/sagas/usecase/subscription/contracts"
@@ -47,7 +47,7 @@ func (r *SubscribeSaga) Init() {
 
 func (r *SubscribeSaga) Start(execCtx saga.SagaContext) error {
 	r.CurrentRetries = r.RetriesLimit
-	execCtx.LogMessage(log.InfoLevel, "Starting saga")
+	execCtx.Logger().Log(log.InfoLevel, "Starting saga")
 	execCtx.Dispatch(&contracts.RegisterUserCmd{
 		Email: r.Email,
 	})
@@ -55,7 +55,7 @@ func (r *SubscribeSaga) Start(execCtx saga.SagaContext) error {
 }
 
 func (r *SubscribeSaga) Compensate(execCtx saga.SagaContext) error {
-	execCtx.LogMessage(log.InfoLevel, "Starting compensation...")
+	execCtx.Logger().Log(log.InfoLevel, "Starting compensation...")
 	execCtx.Dispatch(&contracts.CancelInvoiceCmd{
 		InvoiceID: r.InvoiceID,
 	})
@@ -71,7 +71,7 @@ func (r *SubscribeSaga) Recover(execCtx saga.SagaContext) error {
 		execCtx.Dispatch(ev)
 	}
 
-	execCtx.LogMessage(log.InfoLevel, "Recovering saga, Retries limit was set to 1")
+	execCtx.Logger().Log(log.InfoLevel, "Recovering saga, Retries limit was set to 1")
 
 	return nil
 }
@@ -79,7 +79,7 @@ func (r *SubscribeSaga) Recover(execCtx saga.SagaContext) error {
 func (r *SubscribeSaga) UserRegistered(execCtx saga.SagaContext) error {
 	ev, _ := execCtx.Message().Payload().(*contracts.UserRegistered)
 
-	execCtx.LogMessage(log.InfoLevel, fmt.Sprintf("User %s registration successful", r.Email))
+	execCtx.Logger().Logf(log.InfoLevel, "User %s registration successful", r.Email)
 
 	r.UserID = ev.UID
 
@@ -96,7 +96,7 @@ func (r *SubscribeSaga) UserRegistered(execCtx saga.SagaContext) error {
 func (r *SubscribeSaga) RegistrationFailed(execCtx saga.SagaContext) error {
 	ev, _ := execCtx.Message().Payload().(*contracts.RegistrationFailed)
 
-	execCtx.LogMessage(log.ErrorLevel, fmt.Sprintf("User %s registration failed. %s", r.Email, ev.Reason))
+	execCtx.Logger().Logf(log.ErrorLevel, "User %s registration failed. %s", r.Email, ev.Reason)
 
 	if r.CurrentRetries > 0 {
 		r.CurrentRetries--
@@ -107,7 +107,7 @@ func (r *SubscribeSaga) RegistrationFailed(execCtx saga.SagaContext) error {
 		return nil
 	}
 
-	execCtx.LogMessage(log.ErrorLevel, "Saga failed. You can recover it or compensate by sending corresponding commands.")
+	execCtx.Logger().Log(log.ErrorLevel, "Saga failed. You can recover it or compensate by sending corresponding commands.")
 
 	execCtx.SagaInstance().Fail(execCtx.Message().Payload())
 	return nil
@@ -116,7 +116,7 @@ func (r *SubscribeSaga) RegistrationFailed(execCtx saga.SagaContext) error {
 func (r *SubscribeSaga) InvoiceCreated(execCtx saga.SagaContext) error {
 	ev, _ := execCtx.Message().Payload().(*contracts.InvoiceCreated)
 
-	execCtx.LogMessage(log.InfoLevel, fmt.Sprintf("Invoice %s created for user %s", ev.ID, r.Email))
+	execCtx.Logger().Logf(log.InfoLevel, "Invoice %s created for user %s", ev.ID, r.Email)
 
 	r.InvoiceID = ev.ID
 
@@ -131,7 +131,7 @@ func (r *SubscribeSaga) InvoiceCreated(execCtx saga.SagaContext) error {
 
 func (r *SubscribeSaga) InvoiceCreationFailed(execCtx saga.SagaContext) error {
 	ev, _ := execCtx.Message().Payload().(*contracts.InvoiceCreationFailed)
-	execCtx.LogMessage(log.ErrorLevel, fmt.Sprintf("Failed to create invoice %s for user %s. %s", r.InvoiceID, r.Email, ev.Reason))
+	execCtx.Logger().Logf(log.ErrorLevel, "Failed to create invoice %s for user %s. %s", r.InvoiceID, r.Email, ev.Reason)
 
 	// custom retry logic
 	if r.CurrentRetries > 0 {
@@ -142,21 +142,21 @@ func (r *SubscribeSaga) InvoiceCreationFailed(execCtx saga.SagaContext) error {
 			Email:    r.Email,
 			Amount:   r.Amount,
 			Currency: r.Currency,
-		}, endpoint.WithDelay(time.Second*5)) //do not retry immidiately, wait 5s
+		}, endpoint.WithDelay(time.Second*5)) //do not retry immediately, wait 5s
 
 		return nil
 	}
 
 	// if all retries are used, invoice creation failed, need to mark this saga as failed one, the last failed message will be persisted into saga's state
 	execCtx.SagaInstance().Fail(execCtx.Message().Payload())
-	execCtx.LogMessage(log.ErrorLevel, "Saga failed. You can recover it or compensate by sending corresponding commands.")
+	execCtx.Logger().Log(log.ErrorLevel, "Saga failed. You can recover it or compensate by sending corresponding commands.")
 
 	return nil
 }
 
 func (r *SubscribeSaga) EmailSent(execCtx saga.SagaContext) error {
-	execCtx.LogMessage(log.InfoLevel, fmt.Sprintf("Email to %s was sent", r.Email))
-	execCtx.LogMessage(log.InfoLevel, "Saga completed")
+	execCtx.Logger().Logf(log.InfoLevel, "Email to %s was sent", r.Email)
+	execCtx.Logger().Log(log.InfoLevel, "Saga completed")
 
 	// all steps are processed successfully, mark this saga as completed.
 	execCtx.SagaInstance().Complete()
@@ -166,7 +166,7 @@ func (r *SubscribeSaga) EmailSent(execCtx saga.SagaContext) error {
 
 func (r *SubscribeSaga) EmailSendingFailed(execCtx saga.SagaContext) error {
 	ev, _ := execCtx.Message().Payload().(*contracts.SendingEmailFailed)
-	execCtx.LogMessage(log.ErrorLevel, fmt.Sprintf("Failed to send email to %s. %s", r.Email, ev.Reason))
+	execCtx.Logger().Logf(log.ErrorLevel, "Failed to send email to %s. %s", r.Email, ev.Reason)
 
 	if r.CurrentRetries > 0 {
 		r.CurrentRetries--
@@ -181,7 +181,7 @@ func (r *SubscribeSaga) EmailSendingFailed(execCtx saga.SagaContext) error {
 	}
 
 	execCtx.SagaInstance().Fail(execCtx.Message().Payload())
-	execCtx.LogMessage(log.ErrorLevel, "Saga failed. You can recover it or compensate by sending corresponding commands.")
+	execCtx.Logger().Log(log.ErrorLevel, "Saga failed. You can recover it or compensate by sending corresponding commands.")
 
 	// Depending on business logic these commands can be pushed on user action or
 	// automatically. In this example at the end of failed process a compensation
@@ -197,7 +197,7 @@ func (r *SubscribeSaga) EmailSendingFailed(execCtx saga.SagaContext) error {
 func (r *SubscribeSaga) CanceledInvoice(execCtx saga.SagaContext) error {
 	ev, _ := execCtx.Message().Payload().(*contracts.InvoiceCanceled)
 
-	execCtx.LogMessage(log.InfoLevel, fmt.Sprintf("Invoice %s canceled. Saga marked as completed", ev.InvoiceID))
+	execCtx.Logger().Logf(log.InfoLevel, "Invoice %s canceled. Saga marked as completed", ev.InvoiceID)
 
 	//@todo maybe send an email here about cancellation?
 
@@ -208,7 +208,7 @@ func (r *SubscribeSaga) CanceledInvoice(execCtx saga.SagaContext) error {
 
 func (r *SubscribeSaga) InvoiceCancellationFailed(execCtx saga.SagaContext) error {
 	ev, _ := execCtx.Message().Payload().(*contracts.InvoiceCancellationFailed)
-	execCtx.LogMessage(log.InfoLevel, fmt.Sprintf("Invoice %s wasn't canceled. Saga marked as failed. Call your administrator and fix it :)", ev.InvoiceID))
+	execCtx.Logger().Logf(log.InfoLevel, "Invoice %s wasn't canceled. Saga marked as failed. Call your administrator and fix it :)", ev.InvoiceID)
 
 	execCtx.SagaInstance().Fail(ev)
 
